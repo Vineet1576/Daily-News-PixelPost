@@ -14,14 +14,14 @@ export default function Profile() {
     const [bookmarks, setBookmarks] = useState(() => {
         try {
             return JSON.parse(localStorage.getItem('bookmarks')) || [];
-                <Navbar
-                    publishedDate={publishedDate}
-                    setPublishedDate={setPublishedDate}
-                    search={search}
-                    setSearch={setSearch}
-                    category={category}
-                    setCategory={setCategory}
-                />
+            <Navbar
+                publishedDate={publishedDate}
+                setPublishedDate={setPublishedDate}
+                search={search}
+                setSearch={setSearch}
+                category={category}
+                setCategory={setCategory}
+            />
         } catch {
             return [];
         }
@@ -219,38 +219,38 @@ export default function Profile() {
                     <p className="mt-3 text-lg text-slate-300 max-w-2xl mx-auto">Your personalized news feed — curated, saved, and ready.</p>
                 </header>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                    <div className="col-span-1 bg-slate-800 rounded-3xl p-6 shadow-xl border border-slate-700">
-                        <div className="flex flex-col items-center gap-4">
-                            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center text-4xl text-white shadow-md ring-4 ring-blue-400/30">{(user.name && user.name.charAt(0)) || 'U'}</div>
-                            <div className="text-center">
-                                <h2 className="text-2xl font-bold text-slate-100">{user.name || 'User Name'}</h2>
+                <div className="col-span-1 bg-slate-800 rounded-3xl p-6 shadow-xl border border-slate-700 mb-8">
+                    <div className="flex flex-row items-center justify-between gap-6">
+
+                        {/* Left Side: User Details - No Change */}
+                        <div className="flex items-center gap-4">
+                            <div className="flex-shrink-0">
+                                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center text-4xl text-white shadow-md ring-4 ring-blue-400/30">
+                                    {(user.name && user.name.charAt(0)) || 'U'}
+                                </div>
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-100">{user.name || 'User Name'}</h2>
                                 <p className="text-sm text-slate-400 mt-1">{user.email || 'user@email.com'}</p>
                             </div>
-
-                            <div className="w-full mt-4">
-                                <button onClick={() => { navigator.clipboard?.writeText(user.email || ''); }} className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold">Copy Email</button>
-                                <button onClick={() => { localStorage.removeItem('user'); setUser({ name: '', email: '' }); }} className="w-full mt-3 py-2 rounded-xl border border-slate-700 hover:bg-slate-800">Sign Out</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="col-span-2 bg-slate-800 rounded-3xl p-6 shadow-xl border border-slate-700">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <div className="col-span-2">
-                                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search headlines, keywords or topics..." className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 px-4 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                </div>
-                                <div className="col-span-1 flex items-center gap-3">
-                                    <input type="date" value={publishedDate} onChange={e => setPublishedDate(e.target.value)} className="bg-slate-900 border border-slate-700 rounded-xl py-3 px-3 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                </div>
-                            </div>
-
                         </div>
 
-                        <div className="mt-6">
-                            <h3 className="text-lg font-semibold text-slate-200">Recent activity</h3>
-                            <p className="text-sm text-slate-400 mt-2">Articles below are fetched live. Use filters to narrow results or save them to your bookmarks.</p>
+                        {/* Right Side: Inline Buttons Layout (Compact) */}
+                        <div className="flex flex-row items-center gap-3 flex-shrink-0 w-80">
+                            <button
+                                onClick={() => { navigator.clipboard?.writeText(user.email || ''); }}
+                                // Primary button with good padding
+                                className="w-50 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm"
+                            >Copy Email</button>
+
+                            {/* Subtle separator */}
+                            <div className="h-6 w-px bg-slate-700"></div>
+
+                            <button
+                                onClick={() => { localStorage.removeItem('user'); setUser({ name: '', email: '' }); }}
+                                // Simple text link for sign out
+                                className="px-4 py-2 text-sm text-slate-400 border border-slate-700 rounded-xl hover:text-white hover:bg-slate-400 font-medium transition-colors"
+                            >Sign Out</button>
                         </div>
                     </div>
                 </div>
@@ -349,12 +349,20 @@ export default function Profile() {
 
                 <section className="rounded-3xl p-6 bg-slate-900 border border-slate-700">
                     <h2 className="text-2xl font-extrabold text-blue-400 mb-6">Top Headlines</h2>
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="hidden md:flex items-center gap-2">
-                            {CATEGORIES.map(cat => (
-                                <button key={cat} onClick={() => setCategory(cat)} className={`px-3 py-1 rounded-full text-sm font-medium border ${category === cat ? 'bg-blue-600 border-blue-600' : 'bg-slate-900 border-slate-700'} hover:opacity-90`}>{cat === '' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}</button>
+                    <div className="w-full md:w-auto mb-4">
+                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar md:overflow-visible">
+                            {CATEGORIES.map((cat) => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setCategory(cat)}
+                                    className={`flex-shrink-0 px-3 py-1 rounded-full text-sm font-medium border transition ${category === cat
+                                        ? 'bg-blue-600 border-blue-600 text-white'
+                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                                        }`}
+                                >
+                                    {cat === '' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                                </button>
                             ))}
-                            <button onClick={() => { setPublishedDate(''); setSearch(''); setCategory(''); }} className="px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-sm font-medium">Reset</button>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 mb-4 sm:grid-cols-2 lg:grid-cols-3 gap-6">

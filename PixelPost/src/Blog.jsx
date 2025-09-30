@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { API_KEY } from './assets/key';
-import Navbar from './components/Navbar';
 import './style/output.css';
 
 // Improved Blog component with enhanced UI and filters (single-file React component)
@@ -143,12 +142,15 @@ export default function Blog() {
         return (
             <div className={`fixed inset-0 z-40 transition-opacity ${open ? 'pointer-events-auto' : 'pointer-events-none'}`} aria-hidden={!open}>
                 <div className={`absolute inset-0 bg-black/60 transition-opacity ${open ? 'opacity-100' : 'opacity-0'}`} onClick={onClose}></div>
-                <aside className={`absolute right-0 top-0 h-full w-full max-w-md bg-slate-900 shadow-2xl transform transition-transform ${open ? 'translate-x-0' : 'translate-x-full'}`} aria-label="Bookmarks drawer">
+                <aside className={`absolute right-0 top-0 h-full w-full max-w-md bg-slate-900 shadow-2xl transform transition-transform ${open ? 'translate-x-0' : 'translate-x-full'}`}
+                    aria-label="Bookmarks drawer" style={{ marginTop: '65px' }}
+                >
                     <div className="p-6 flex items-center justify-between border-b border-slate-700">
                         <h3 className="text-xl font-bold text-blue-300">Bookmarks</h3>
-                        <button onClick={onClose} className="p-2 rounded-md hover:bg-slate-800 focus:outline-none">Close</button>
+                        <span className="px-3 py-1 rounded-full border border-slate-700 hover:bg-slate-800 focus:outline-none">{bookmarks.length} Bookmarks Saved</span>
+                        <button onClick={onClose} className="px-3 py-1 rounded-full border border-slate-700 hover:bg-slate-800 focus:outline-none">Close</button>
                     </div>
-                    <div className="p-4 overflow-y-auto h-[calc(100%-72px)]">
+                    <div className="p-4 overflow-y-auto h-[calc(100%-72px)] custom-scrollbar">
                         {items.length === 0 ? (
                             <p className="text-slate-400">No bookmarks yet. Click the bookmark icon on any article to save it here.</p>
                         ) : (
@@ -206,7 +208,7 @@ export default function Blog() {
                             {item.publishedAt && <p className="text-xs text-slate-400 mt-1">{readable(item.publishedAt)}</p>}
                         </div>
                         <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-full text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Read
+                            Read More
                         </a>
                     </div>
                 </div>
@@ -224,49 +226,81 @@ export default function Blog() {
                 <p className="mt-3 text-lg text-slate-300 max-w-2xl mx-auto">Stay up-to-date with top stories from around the world.</p>
             </header>
 
-            <div className="max-w-7xl mx-auto mb-8 flex gap-4 flex-row items-center justify-between md:flex-row md:items-center md:justify-between">
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="col-span-1 sm:col-span-2 flex items-center gap-3">
-                        <div className="relative w-full">
-                            <input
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                placeholder="Search headlines, keywords or topics..."
-                                className="w-full bg-slate-800 border border-slate-700 rounded-xl py-3 px-4 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                aria-label="Search articles"
-                            />
-                            {search && <button onClick={() => setSearch('')} className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 hover:bg-slate-800/80">Clear</button>}
-                        </div>
+            <div className="max-w-5xl mx-auto mb-8 flex justify-center">
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full px-4">
+
+                    {/* Search Input */}
+                    <div className="relative flex-1 sm:flex-auto w-full">
+                        <input
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            placeholder="Search headlines, keywords or topics..."
+                            className="w-full bg-slate-800 border border-slate-700 rounded-full py-3 px-4 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            aria-label="Search articles"
+                        />
+                        {search && (
+                            <button
+                                onClick={() => setSearch('')}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 hover:bg-slate-800/80"
+                            >
+                                Clear
+                            </button>
+                        )}
                     </div>
 
-                    <div className="col-span-1 flex items-center gap-3">
+                    {/* Date Input */}
+                    <div className="flex-shrink-0 w-full sm:w-auto">
                         <input
                             type="date"
                             value={publishedDate}
                             onChange={e => setPublishedDate(e.target.value)}
-                            className="bg-slate-800 border border-slate-700 rounded-xl py-3 px-3 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full sm:w-auto bg-slate-800 border border-slate-700 rounded-full py-3 px-3 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             aria-label="Filter by date"
                         />
-
                     </div>
+
                 </div>
             </div>
-            <div className='max-w-7xl mx-auto mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
-                <div className="flex items-center gap-3">
-                    <div className="hidden md:flex items-center gap-2">
-                        {CATEGORIES.map(cat => (
+
+            <div className="max-w-7xl mx-auto mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                {/* Categories with hidden scrollbar */}
+                <div className="w-full md:w-auto">
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar md:overflow-visible">
+                        {CATEGORIES.map((cat) => (
                             <button
                                 key={cat}
                                 onClick={() => setCategory(cat)}
-                                className={`px-3 py-1 rounded-full text-sm font-medium border ${category === cat ? 'bg-blue-600 border-blue-600' : 'bg-slate-800 border-slate-700'} hover:opacity-90`}
-                            >{cat === '' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}</button>
+                                className={`flex-shrink-0 px-3 py-1 rounded-full text-sm font-medium border transition ${category === cat
+                                    ? 'bg-blue-600 border-blue-600 text-white'
+                                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                                    }`}
+                            >
+                                {cat === '' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                            </button>
                         ))}
-                        <button onClick={() => { setPublishedDate(''); setSearch(''); setCategory(''); }} className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 hover:bg-slate-800/80">Reset</button>
                     </div>
-
-                    <button onClick={() => setIsBookmarkOpen(true)} className="px-3 py-2 rounded-xl bg-yellow-400 text-slate-900 font-semibold">Bookmarks ({bookmarks.length})</button>
                 </div>
+                <div className='flex items-center gap-4 w-full'>
+                    {/* Reset Button */}
+                    <button
+                        onClick={() => {
+                            setPublishedDate('');
+                            setSearch('');
+                            setCategory('');
+                        }}
+                        className="flex-shrink-0 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700"
+                    >
+                        Reset
+                    </button>
+                    {/* Bookmarks */}
+                    <button
+                        onClick={() => setIsBookmarkOpen(true)}
+                        className="px-3 py-1 rounded-full bg-yellow-400 text-slate-900 font-semibold hover:bg-yellow-500 transition"
+                    >
+                        Bookmarks ({bookmarks.length})
+                    </button></div>
             </div>
+
             <main className="max-w-7xl mx-auto">
                 {error && <div className="mb-6 p-4 rounded-xl bg-red-900 text-red-200 border border-red-700">{error}</div>}
 
