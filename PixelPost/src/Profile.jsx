@@ -26,9 +26,7 @@ export default function Profile() {
             return [];
         }
     });
-    const [search, setSearch] = useState('');
-    const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [publishedDate, setPublishedDate] = useState('');
+    // Removed search and publishedDate state
     const [category, setCategory] = useState('');
     const [isBookmarkOpen, setIsBookmarkOpen] = useState(false);
     const endpoint = 'https://gnews.io/api/v4/top-headlines';
@@ -41,18 +39,12 @@ export default function Profile() {
         }
     }, []);
 
-    // Debounce search
-    useEffect(() => {
-        const id = setTimeout(() => setDebouncedSearch(search.trim()), 400);
-        return () => clearTimeout(id);
-    }, [search]);
-
-    // Reset pagination when primary filters change
+    // Reset pagination when category changes
     useEffect(() => {
         setPage(1);
         setNews([]);
         setHasMore(true);
-    }, [publishedDate, category, debouncedSearch]);
+    }, [category]);
 
     // Fetch news
     useEffect(() => {
@@ -87,7 +79,7 @@ export default function Profile() {
         };
         fetchNews();
         return () => { ignore = true; };
-    }, [page, endpoint, category, debouncedSearch]);
+    }, [page, endpoint, category]);
 
     // Infinite scroll observer (smoother)
     useEffect(() => {
@@ -111,28 +103,8 @@ export default function Profile() {
         localStorage.setItem('bookmarks', JSON.stringify(updated));
     };
 
-    // Client-side filtering
-    const filteredNews = useMemo(() => {
-        const s = debouncedSearch.toLowerCase();
-        return news.filter(item => {
-            let matchesDate = true;
-            let matchesSearch = true;
-            if (publishedDate) {
-                if (item.publishedAt) {
-                    const itemDate = new Date(item.publishedAt).toISOString().slice(0, 10);
-                    matchesDate = itemDate === publishedDate;
-                } else {
-                    matchesDate = false;
-                }
-            }
-            if (s) {
-                matchesSearch = (item.title && item.title.toLowerCase().includes(s)) ||
-                    (item.description && item.description.toLowerCase().includes(s)) ||
-                    (item.content && item.content.toLowerCase().includes(s));
-            }
-            return matchesDate && matchesSearch;
-        });
-    }, [news, debouncedSearch, publishedDate]);
+    // No client-side filtering needed (search and publishedDate removed)
+    const filteredNews = news;
 
     const readable = (iso) => {
         try { return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); } catch { return ''; }
