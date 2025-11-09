@@ -17,20 +17,36 @@ function Login() {
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setError(''); // Clear any previous errors
         try {
             const res = await axios.post("http://localhost:5000/api/auth/login", {
                 email,
                 password,
             });
-            if (res.status === 200) {
-                localStorage.setItem("user", JSON.stringify(res.data.user));
-                localStorage.setItem("token", res.token);
-                navigate("/");
+            
+            if (res.data && res.data.token) {
+                // Store user data and token
+                localStorage.setItem("user", JSON.stringify({
+                    _id: res.data._id,
+                    name: res.data.name,
+                    email: res.data.email
+                }));
+                localStorage.setItem("token", res.data.token);
+                
+                // Small delay to ensure storage is complete
+                setTimeout(() => {
+                    navigate("/profile");
+                }, 100);
             } else {
-                setError("Login failed");
+                setError("Login failed - Invalid credentials");
             }
         } catch (error) {
-            setError(error.response?.data?.message || "Something went wrong");
+            console.error('Login error:', error);
+            if (error.response?.status === 401) {
+                setError("Invalid email or password");
+            } else {
+                setError(error.response?.data?.message || "Something went wrong");
+            }
         }
     };
 

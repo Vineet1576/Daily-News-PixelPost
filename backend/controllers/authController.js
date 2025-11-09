@@ -29,7 +29,11 @@ exports.loginUser = async (req, res) => {
         if (!isPasswordCorrect) {
             return res.status(201).json({ message: "email and password is incorrect" });
         }
-        const token = jwt.sign({ email: userExist.email }, "hello", {
+        const token = jwt.sign({ 
+            id: userExist._id,
+            email: userExist.email,
+            name: userExist.name
+        }, "hello", {
             expiresIn: "30m"
         });
         return res.status(200).json({
@@ -39,6 +43,25 @@ exports.loginUser = async (req, res) => {
             token
         });
     } catch (error) {
-        res.status(500).json({ message: "Something went wrong", error: error.message });
-    }
-}
+                res.status(500).json({ message: "Something went wrong", error: error.message });
+            }
+        }
+        
+        exports.getProfile = async (req, res) => {
+            try {
+                const user = await User.findOne({ email: req.user.email });
+                if (user) {
+                    res.status(200).json({
+                        _id: user._id,
+                        name: user.name,
+                        email: user.email
+                    });
+                } else {
+                    res.status(404).json({ message: 'User not found' });
+                }
+            } catch (error) {
+                console.error('Profile fetch error:', error);
+                res.status(500).json({ message: 'Server error', error: error.message });
+            }
+        };
+        

@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { API_KEY } from './assets/key';
 import './style/output.css';
 import Navbar from './components/Navbar';
+import NewsCard from './components/NewsCard';
+import { useBookmarks } from './hooks/useBookmarks';
 
 export default function Profile() {
+    const navigate = useNavigate();
     const [news, setNews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -11,32 +16,79 @@ export default function Profile() {
     const [hasMore, setHasMore] = useState(true);
     const loaderRef = useRef(null);
     const [user, setUser] = useState({ name: '', email: '' });
-    const [bookmarks, setBookmarks] = useState(() => {
-        try {
-            return JSON.parse(localStorage.getItem('bookmarks')) || [];
-            <Navbar
-                publishedDate={publishedDate}
-                setPublishedDate={setPublishedDate}
-                search={search}
-                setSearch={setSearch}
-                category={category}
-                setCategory={setCategory}
-            />
-        } catch {
-            return [];
-        }
-    });
+    const {
+        bookmarks,
+        loading: bookmarksLoading,
+        error: bookmarksError,
+        fetchBookmarks,
+        removeBookmark,
+        addBookmark
+    } = useBookmarks();
+    const [bookmarkError, setBookmarkError] = useState('');
     // Removed search and publishedDate state
     const [category, setCategory] = useState('');
     const [isBookmarkOpen, setIsBookmarkOpen] = useState(false);
     const endpoint = 'https://gnews.io/api/v4/top-headlines';
 
-    // Load user from localStorage
+    // Load user from API
+    // Check authentication and fetch bookmarks on mount
     useEffect(() => {
-        const stored = localStorage.getItem('user');
-        if (stored) {
-            try { setUser(JSON.parse(stored)); } catch { setUser({ name: '', email: '' }); }
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login');
+            return;
         }
+        fetchBookmarks();
+    }, [navigate, fetchBookmarks]);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            setLoading(true);
+            const token = localStorage.getItem('token');
+            const userData = localStorage.getItem('user');
+            
+            if (!token) {
+                setError('Please login to view your profile');
+                navigate('/login');
+                return;
+            }
+
+            // Set user data from localStorage first for immediate display
+            if (userData) {
+                try {
+                    const parsedUser = JSON.parse(userData);
+                    setUser(parsedUser);
+                } catch (e) {
+                    console.error('Error parsing stored user data:', e);
+                }
+            }
+
+            try {
+                const res = await axios.get("http://localhost:5000/api/auth/profile", {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                
+                if (res.data) {
+                    setUser(res.data);
+                    setError('');
+                    // Update stored user data
+                    localStorage.setItem('user', JSON.stringify(res.data));
+                }
+                setLoading(false);
+            } catch (error) {
+                console.error("Failed to fetch profile", error);
+                if (error.response?.status === 401) {
+                    setError('Your session has expired. Please login again.');
+                    localStorage.removeItem('token');
+                } else {
+                    setError('Failed to load profile. Please try again later.');
+                    // Handle error, e.g., redirect to login
+                }
+            }
+        };
+        fetchProfile();
     }, []);
 
     // Reset pagination when category changes
@@ -96,11 +148,22 @@ export default function Profile() {
     }, [hasMore, loading]);
 
     // Bookmark handler
-    const handleBookmark = (item) => {
-        const exists = bookmarks.some(b => b.url === item.url);
-        const updated = exists ? bookmarks.filter(b => b.url !== item.url) : [item, ...bookmarks];
-        setBookmarks(updated);
-        localStorage.setItem('bookmarks', JSON.stringify(updated));
+    const handleBookmark = async (item) => {
+        try {
+            setBookmarkError('');
+            if (!item._id) {
+                throw new Error('Invalid bookmark data');
+            }
+            
+            // Remove bookmark using MongoDB
+            await removeBookmark(item._id);
+            
+            // Refresh bookmarks after removal
+            await fetchBookmarks();
+        } catch (error) {
+            console.error('Error removing bookmark:', error);
+            setBookmarkError(error.response?.data?.message || 'Failed to remove bookmark');
+        }
     };
 
     // No client-side filtering needed (search and publishedDate removed)
@@ -110,7 +173,7 @@ export default function Profile() {
         try { return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); } catch { return ''; }
     };
 
-    const CATEGORIES = ['', 'general', 'business', 'technology', 'entertainment', 'sports', 'science', 'health', 'nation', 'politics', 'business', 'startup', 'fun', 'travel'];
+    const CATEGORIES = ['', 'general', 'business', 'technology', 'entertainment', 'sports', 'science', 'health', 'nation', 'politics', 'startup', 'fun', 'travel'];
 
     // Bookmark Drawer component
     const BookmarkDrawer = ({ open, onClose, items }) => (
@@ -356,7 +419,11 @@ export default function Profile() {
                         )}
                     </div>
 
-                    {error && <div className="mt-6 p-4 rounded-xl bg-red-900 text-red-200 border border-red-700">{error}</div>}
+                    {(error || bookmarkError || bookmarksError) && (
+                        <div className="mt-6 p-4 rounded-xl bg-red-900 text-red-200 border border-red-700">
+                            {error || bookmarkError || bookmarksError}
+                        </div>
+                    )}
                 </section>
             </div>
 

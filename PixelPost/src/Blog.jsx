@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { API_KEY } from './assets/key';
 import './style/output.css';
+import { useBookmarks } from './hooks/useBookmarks';
+import BookmarkButton from './components/ui/BookmarkButton';
+import BookmarkIndicator from './components/ui/BookmarkIndicator';
 
 // Improved Blog component with enhanced UI and filters (single-file React component)
 export default function Blog() {
@@ -13,13 +16,15 @@ export default function Blog() {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [category, setCategory] = useState('');
-    const [bookmarks, setBookmarks] = useState(() => {
-        try {
-            return JSON.parse(localStorage.getItem('bookmarks')) || [];
-        } catch {
-            return [];
-        }
-    });
+    const {
+        bookmarks,
+        loading: bookmarksLoading,
+        error: bookmarksError,
+        fetchBookmarks,
+        addBookmark,
+        removeBookmark,
+        checkBookmark
+    } = useBookmarks();
     const [isBookmarkOpen, setIsBookmarkOpen] = useState(false);
     const loaderRef = useRef(null);
     const endpoint = 'https://gnews.io/api/v4/top-headlines';
@@ -29,6 +34,11 @@ export default function Blog() {
         const id = setTimeout(() => setDebouncedSearch(search.trim()), 450);
         return () => clearTimeout(id);
     }, [search]);
+
+    // Fetch bookmarks on mount
+    useEffect(() => {
+        fetchBookmarks();
+    }, [fetchBookmarks]);
 
     // Reset list when primary filters change
     useEffect(() => {
@@ -80,11 +90,30 @@ export default function Blog() {
     }, [page, endpoint, publishedDate, category, debouncedSearch]);
 
     // Bookmark handler
-    const handleBookmark = (item) => {
-        const exists = bookmarks.some(b => b.url === item.url);
-        const updated = exists ? bookmarks.filter(b => b.url !== item.url) : [item, ...bookmarks];
-        setBookmarks(updated);
-        localStorage.setItem('bookmarks', JSON.stringify(updated));
+    const handleBookmark = async (item) => {
+        try {
+            const checkResult = await checkBookmark(item.url);
+            
+            if (checkResult.isBookmarked) {
+                await removeBookmark(checkResult.bookmarkId);
+            } else {
+                const bookmarkData = {
+                    title: item.title,
+                    description: item.description,
+                    url: item.url,
+                    image: item.image,
+                    source: item.source,
+                    publishedAt: item.publishedAt
+                };
+                await addBookmark(bookmarkData);
+            }
+            
+            // Refresh bookmarks
+            await fetchBookmarks();
+        } catch (error) {
+            console.error('Error handling bookmark:', error);
+            setError(error.response?.data?.message || 'Failed to process bookmark');
+        }
     };
 
     // Infinite scroll observer (improved: rootMargin for smoother loads)
@@ -147,7 +176,15 @@ export default function Blog() {
                 >
                     <div className="p-6 flex items-center justify-between border-b border-slate-700">
                         <h3 className="text-xl font-bold text-blue-300">Bookmarks</h3>
-                        <span className="px-3 py-1 rounded-full border border-slate-700 hover:bg-slate-800 focus:outline-none">{bookmarks.length} Bookmarks Saved</span>
+                        <div className="flex items-center gap-2">
+                            {bookmarksLoading ? (
+                                <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                            ) : (
+                                <span className="px-3 py-1 rounded-full border border-slate-700 hover:bg-slate-800 focus:outline-none">
+                                    {bookmarks.length} Bookmarks Saved
+                                </span>
+                            )}
+                        </div>
                         <button onClick={onClose} className="px-3 py-1 rounded-full border border-slate-700 hover:bg-slate-800 focus:outline-none">Close</button>
                     </div>
                     <div className="p-4 overflow-y-auto h-[calc(100%-72px)] custom-scrollbar">

@@ -1,0 +1,125 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useBookmarks } from './hooks/useBookmarks';
+import NewsCard from './components/NewsCard';
+import './style/Profile.css';
+
+export default function Profile() {
+    const navigate = useNavigate();
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState({ name: '', email: '' });
+    const {
+        bookmarks,
+        loading: bookmarksLoading,
+        error: bookmarksError,
+        fetchBookmarks,
+        removeBookmark
+    } = useBookmarks();
+
+    // Check authentication and fetch data on mount
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        if (userData) {
+            try {
+                setUser(JSON.parse(userData));
+            } catch (e) {
+                console.warn('Error parsing user data');
+            }
+        }
+        
+        fetchBookmarks();
+        setLoading(false);
+    }, [navigate, fetchBookmarks]);
+
+    // Handle bookmark removal
+    const handleRemoveBookmark = async (bookmarkId) => {
+        try {
+            await removeBookmark(bookmarkId);
+            await fetchBookmarks(); // Refresh the list
+        } catch (error) {
+            setError('Failed to remove bookmark. Please try again.');
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-slate-950 text-white pb-16">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="space-y-8">
+                    {/* Profile Header */}
+                    <section className="bg-gradient-to-r from-blue-600 to-blue-400 rounded-3xl p-8 shadow-xl">
+                        <h1 className="text-4xl font-bold mb-4">Welcome back, {user.name}!</h1>
+                        <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-full bg-white text-blue-600 flex items-center justify-center text-2xl font-bold">
+                                {user.name?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-semibold">{user.name}</h2>
+                                <p className="text-blue-100">{user.email}</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Bookmarks Section */}
+                    <section className="bg-slate-900 rounded-3xl p-6 shadow-xl">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold text-blue-400">Your Bookmarks</h2>
+                            <span className="px-4 py-2 bg-slate-800 rounded-full text-sm">
+                                {bookmarksLoading ? 'Loading...' : `${bookmarks.length} Saved`}
+                            </span>
+                        </div>
+
+                        {bookmarksError && (
+                            <div className="mb-4 p-4 bg-red-900/50 border border-red-700 rounded-xl text-red-200">
+                                {bookmarksError}
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {bookmarks.length > 0 ? (
+                                bookmarks.map(bookmark => (
+                                    <NewsCard
+                                        key={bookmark._id}
+                                        item={bookmark}
+                                        onBookmarkToggle={() => handleRemoveBookmark(bookmark._id)}
+                                    />
+                                ))
+                            ) : (
+                                <div className="col-span-full text-center p-8 bg-slate-800 rounded-xl border border-slate-700">
+                                    <p className="text-slate-400 mb-4">No bookmarks yet!</p>
+                                    <button
+                                        onClick={() => navigate('/blog')}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+                                    >
+                                        Browse Articles
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
+                    {error && (
+                        <div className="fixed bottom-4 right-4 p-4 bg-red-900 text-red-100 rounded-xl border border-red-700 shadow-lg">
+                            {error}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
