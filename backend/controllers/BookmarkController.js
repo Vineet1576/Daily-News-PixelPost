@@ -5,7 +5,7 @@ const User = require('../models/user');
 exports.addBookmark = async (req, res) => {
     try {
         const { title, description, url, image, source, publishedAt } = req.body;
-        const userId = req.user.id; // From auth middleware
+        const userId = req.user._id; // From auth middleware
 
         // Check if bookmark already exists
         const existingBookmark = await Bookmark.findOne({ userId, url });
@@ -34,7 +34,7 @@ exports.addBookmark = async (req, res) => {
 // Get all bookmarks for a user
 exports.getBookmarks = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user._id;
         const bookmarks = await Bookmark.find({ userId })
             .sort({ createdAt: -1 }); // Most recent first
 
@@ -49,7 +49,7 @@ exports.getBookmarks = async (req, res) => {
 exports.removeBookmark = async (req, res) => {
     try {
         const bookmarkId = req.params.bookmarkId;
-        const userId = req.user.id;
+        const userId = req.user._id;
 
         const bookmark = await Bookmark.findOne({ _id: bookmarkId, userId });
         
@@ -69,7 +69,7 @@ exports.removeBookmark = async (req, res) => {
 exports.checkBookmark = async (req, res) => {
     try {
         const { url } = req.query;
-        const userId = req.user.id;
+        const userId = req.user._id;
 
         const bookmark = await Bookmark.findOne({ userId, url });
         res.status(200).json({ isBookmarked: !!bookmark, bookmarkId: bookmark?._id });

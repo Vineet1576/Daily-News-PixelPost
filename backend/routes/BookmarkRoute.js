@@ -7,10 +7,14 @@ const {
     checkBookmark
 } = require('../controllers/BookmarkController');
 
+const { exportBookmarksToExcel } = require('../controllers/ExportController');
 const router = express.Router();
 
 // All routes are protected and require authentication
 router.use(protect);
+
+// Export bookmarks to Excel
+router.get('/export/excel', exportBookmarksToExcel);
 
 // Add a new bookmark
 router.post('/', addBookmark);
