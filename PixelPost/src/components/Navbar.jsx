@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../style/output.css';
 
@@ -16,8 +16,15 @@ function Navbar({ publishedDate, setPublishedDate, search, setSearch, category, 
     const navLinks = [
         { path: "/", label: "Home" },
         { path: "/profile", label: "Profile" },
-        { path: "/login", label: "Login" },
+        // Login/Logout is shown conditionally below
     ];
+
+    const [isAuthed, setIsAuthed] = useState(false);
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        setIsAuthed(!!token);
+    }, []);
 
     return (
         <nav className="sticky top-0 z-50 w-full bg-slate-900 shadow-xl border-b border-slate-700">
@@ -42,6 +49,7 @@ function Navbar({ publishedDate, setPublishedDate, search, setSearch, category, 
                             {link.label}
                         </Link>
                     ))}
+                    <Link to="/login" className="text-white font-semibold hover:text-blue-400 transition">Login</Link>
                 </div>
 
                 {/* Hamburger Icon (mobile) */}
@@ -72,6 +80,7 @@ function Navbar({ publishedDate, setPublishedDate, search, setSearch, category, 
                             {link.label}
                         </Link>
                     ))}
+                    <Link to="/login" onClick={() => setMenuOpen(false)} className="w-full text-left px-4 py-2 rounded-lg text-white font-semibold hover:text-blue-400">Login</Link>
                 </div>
             </div>
         </nav>
