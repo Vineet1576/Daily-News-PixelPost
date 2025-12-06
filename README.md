@@ -1,7 +1,12 @@
-# PixelPost - Real-time News and Bookmarking Platform
+# FlashFeed - Real-time News and Bookmarking Platform
+
+[![React](https://img.shields.io/badge/React-18.x-blue.svg)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-14.x-green.svg)](https://nodejs.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-4.x-green.svg)](https://www.mongodb.com/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.x-blue.svg)](https://tailwindcss.com/)
 
 ## Overview
-PixelPost is a modern web application that provides real-time news updates and allows users to bookmark their favorite articles. Built with React.js and Node.js, it offers a seamless experience for reading and managing news content.
+FlashFeed is a modern web application that provides real-time news updates and allows users to bookmark their favorite articles. Built with React.js and Node.js, it offers a seamless experience for reading and managing news content. The platform combines powerful features like real-time updates, personalized bookmarking, and a responsive user interface to deliver an engaging news reading experience.
 
 ## Features
 - 🔐 User Authentication (JWT)
@@ -33,7 +38,7 @@ backend/
   │   └── index.js
   └── server.js
 
-PixelPost/
+FlashFeed/
   ├── src/
   │   ├── components/
   │   │   ├── Navbar.jsx
@@ -118,9 +123,8 @@ const bookmarkSchema = new mongoose.Schema({
 });
 
 bookmarkSchema.index({ userId: 1, url: 1 }, { unique: true });
-
+```
 ### Authentication Components
-
 #### Login Component
 ```jsx
 // Login.jsx
@@ -209,7 +213,6 @@ function Login() {
 
 export default Login;
 ```
-
 #### SignUp Component
 ```jsx
 // SignUp.jsx
@@ -371,6 +374,286 @@ const ErrorText = ({ children }) => (
 );
 ```
 
+### News Filtering System
+
+The news filtering system allows users to filter articles based on multiple criteria including categories, date ranges, and sources. Here's a detailed implementation:
+
+#### Filter Components
+```jsx
+// components/filters/NewsFilters.jsx
+import React from 'react';
+import { useNewsContext } from '../../context/NewsContext';
+
+const NewsFilters = () => {
+    const { filters, updateFilters } = useNewsContext();
+    
+    const categories = [
+        'Technology', 'Business', 'Sports', 
+        'Entertainment', 'Health', 'Science'
+    ];
+
+    const handleCategoryChange = (category) => {
+        updateFilters({ ...filters, category });
+    };
+
+    const handleDateRangeChange = (range) => {
+        updateFilters({ ...filters, dateRange: range });
+    };
+
+    const handleSourceChange = (source) => {
+        updateFilters({ ...filters, source });
+    };
+
+    return (
+        <div className="flex flex-col space-y-4 p-4 bg-slate-800 rounded-lg">
+            {/* Category Filters */}
+            <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-white">Categories</h3>
+                <div className="flex flex-wrap gap-2">
+                    {categories.map(category => (
+                        <button
+                            key={category}
+                            onClick={() => handleCategoryChange(category)}
+                            className={`px-3 py-1 rounded-full text-sm 
+                                ${filters.category === category 
+                                    ? 'bg-blue-600 text-white' 
+                                    : 'bg-slate-700 text-slate-300'}`}
+                        >
+                            {category}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Date Range Filter */}
+            <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-white">Time Period</h3>
+                <select 
+                    value={filters.dateRange}
+                    onChange={(e) => handleDateRangeChange(e.target.value)}
+                    className="w-full bg-slate-700 text-white rounded-lg p-2"
+                >
+                    <option value="today">Today</option>
+                    <option value="week">Past Week</option>
+                    <option value="month">Past Month</option>
+                    <option value="year">Past Year</option>
+                </select>
+            </div>
+
+            {/* Source Filter */}
+            <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-white">News Sources</h3>
+                <select
+                    value={filters.source}
+                    onChange={(e) => handleSourceChange(e.target.value)}
+                    className="w-full bg-slate-700 text-white rounded-lg p-2"
+                >
+                    <option value="all">All Sources</option>
+                    <option value="reuters">Reuters</option>
+                    <option value="bbc">BBC News</option>
+                    <option value="cnn">CNN</option>
+                    <option value="bloomberg">Bloomberg</option>
+                </select>
+            </div>
+        </div>
+    );
+};
+
+export default NewsFilters;
+```
+
+#### News Context
+```jsx
+// context/NewsContext.jsx
+import React, { createContext, useContext, useState, useCallback } from 'react';
+
+const NewsContext = createContext();
+
+export const NewsProvider = ({ children }) => {
+    const [filters, setFilters] = useState({
+        category: 'all',
+        dateRange: 'week',
+        source: 'all',
+        searchQuery: ''
+    });
+
+    const [articles, setArticles] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    const updateFilters = useCallback((newFilters) => {
+        setFilters(newFilters);
+        fetchArticles(newFilters);
+    }, []);
+
+    const fetchArticles = async (currentFilters) => {
+        setLoading(true);
+        try {
+            const queryParams = new URLSearchParams({
+                category: currentFilters.category,
+                dateRange: currentFilters.dateRange,
+                source: currentFilters.source,
+                q: currentFilters.searchQuery
+            });
+
+            const response = await fetch(
+                `/api/news?${queryParams.toString()}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                }
+            );
+
+            const data = await response.json();
+            setArticles(data);
+        } catch (error) {
+            console.error('Error fetching articles:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <NewsContext.Provider value={{
+            filters,
+            articles,
+            loading,
+            updateFilters
+        }}>
+            {children}
+        </NewsContext.Provider>
+    );
+};
+
+export const useNewsContext = () => useContext(NewsContext);
+```
+
+#### Backend Implementation
+```javascript
+// controllers/NewsController.js
+const News = require('../models/NewsModel');
+
+exports.getFilteredNews = async (req, res) => {
+    try {
+        const { category, dateRange, source, q } = req.query;
+        
+        // Build filter query
+        const query = {};
+        
+        // Category filter
+        if (category && category !== 'all') {
+            query.category = category;
+        }
+
+        // Date range filter
+        if (dateRange) {
+            const date = new Date();
+            switch (dateRange) {
+                case 'today':
+                    date.setHours(0, 0, 0, 0);
+                    query.publishedAt = { $gte: date };
+                    break;
+                case 'week':
+                    date.setDate(date.getDate() - 7);
+                    query.publishedAt = { $gte: date };
+                    break;
+                case 'month':
+                    date.setMonth(date.getMonth() - 1);
+                    query.publishedAt = { $gte: date };
+                    break;
+                case 'year':
+                    date.setFullYear(date.getFullYear() - 1);
+                    query.publishedAt = { $gte: date };
+                    break;
+            }
+        }
+
+        // Source filter
+        if (source && source !== 'all') {
+            query['source.name'] = source;
+        }
+
+        // Search query
+        if (q) {
+            query.$or = [
+                { title: { $regex: q, $options: 'i' } },
+                { description: { $regex: q, $options: 'i' } }
+            ];
+        }
+
+        // Execute query with pagination
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const articles = await News
+            .find(query)
+            .sort({ publishedAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        const total = await News.countDocuments(query);
+
+        res.json({
+            articles,
+            pagination: {
+                total,
+                page,
+                pages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            message: "Error fetching news", 
+            error: error.message 
+        });
+    }
+};
+```
+
+### News Model
+```javascript
+// models/NewsModel.js
+const mongoose = require('mongoose');
+
+const newsSchema = new mongoose.Schema({
+    title: {
+        type: String,
+        required: true
+    },
+    description: String,
+    content: String,
+    url: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    image: String,
+    publishedAt: {
+        type: Date,
+        required: true
+    },
+    source: {
+        name: String,
+        url: String
+    },
+    category: {
+        type: String,
+        enum: ['Technology', 'Business', 'Sports', 
+               'Entertainment', 'Health', 'Science'],
+        required: true
+    }
+}, { timestamps: true });
+
+// Index for faster searches
+newsSchema.index({ title: 'text', description: 'text' });
+newsSchema.index({ publishedAt: -1 });
+newsSchema.index({ category: 1 });
+newsSchema.index({ 'source.name': 1 });
+
+module.exports = mongoose.model('News', newsSchema);
+```
+
 ### Frontend Bookmark Management
 ```javascript
 // useBookmarks.js
@@ -434,9 +717,9 @@ export const useBookmarks = () => {
    ```
 
 ### Frontend Setup
-1. Navigate to the PixelPost directory:
+1. Navigate to the FlashFeed directory:
    ```bash
-   cd PixelPost
+    cd FlashFeed
    ```
 
 2. Install dependencies:
@@ -595,18 +878,104 @@ router.post('/login', login);
 module.exports = router;
 ```
 
-## API Endpoints
+## API Documentation
 
-### Authentication
-- POST `/api/auth/register` - Register new user
-- POST `/api/auth/login` - User login
-- GET `/api/auth/profile` - Get user profile
+### Authentication Endpoints
+#### Register User
+```http
+POST /api/auth/register
+Content-Type: application/json
 
-### Bookmarks
-- GET `/api/bookmarks` - Get user's bookmarks
-- POST `/api/bookmarks` - Add new bookmark
-- DELETE `/api/bookmarks/:id` - Remove bookmark
-- GET `/api/bookmarks/check` - Check bookmark status
+{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "securepassword"
+}
+```
+
+#### User Login
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+    "email": "john@example.com",
+    "password": "securepassword"
+}
+```
+
+#### Get User Profile
+```http
+GET /api/auth/profile
+Authorization: Bearer <token>
+```
+
+### Bookmark Endpoints
+#### Get User Bookmarks
+```http
+GET /api/bookmarks
+Authorization: Bearer <token>
+```
+
+#### Add New Bookmark
+```http
+POST /api/bookmarks
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+    "title": "Article Title",
+    "description": "Article description",
+    "url": "https://example.com/article",
+    "image": "https://example.com/image.jpg",
+    "source": {
+        "name": "News Source",
+        "url": "https://example.com"
+    }
+}
+```
+
+#### Remove Bookmark
+```http
+DELETE /api/bookmarks/:id
+Authorization: Bearer <token>
+```
+
+#### Check Bookmark Status
+```http
+GET /api/bookmarks/check?url=https://example.com/article
+Authorization: Bearer <token>
+```
+
+### Response Examples
+
+#### Successful Login Response
+```json
+{
+    "_id": "user_id",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "token": "jwt_token_here"
+}
+```
+
+#### Bookmark List Response
+```json
+[
+    {
+        "_id": "bookmark_id",
+        "title": "Article Title",
+        "description": "Article description",
+        "url": "https://example.com/article",
+        "image": "https://example.com/image.jpg",
+        "source": {
+            "name": "News Source",
+            "url": "https://example.com"
+        },
+        "createdAt": "2025-11-09T12:00:00.000Z"
+    }
+]
+```
 
 ## Environment Variables
 Create a `.env` file in the backend directory with the following variables:
@@ -617,22 +986,91 @@ JWT_SECRET=your_jwt_secret_key
 API_KEY=your_news_api_key
 ```
 
+## Development
+
+### Code Style and Standards
+- Use ESLint for code linting
+- Follow Airbnb JavaScript Style Guide
+- Maintain consistent code formatting using Prettier
+- Write meaningful commit messages following Conventional Commits
+
+### Testing
+```bash
+# Run frontend tests
+cd FlashFeed
+npm test
+
+# Run backend tests
+cd backend
+npm test
+```
+
+### Building for Production
+```bash
+# Build frontend
+cd FlashFeed
+npm run build
+
+# Prepare backend for production
+cd backend
+npm run build
+```
+
+## Performance Optimization
+
+### Frontend Optimizations
+- Lazy loading of images and components
+- Code splitting for optimal bundle size
+- Caching strategies for API responses
+- Optimized asset delivery
+
+### Backend Optimizations
+- Database indexing for faster queries
+- Response caching
+- Rate limiting
+- Compression middleware
+
 ## Contributing
 1. Fork the repository
 2. Create a new branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+### Commit Message Guidelines
+```
+feat: add new feature
+fix: resolve specific issue
+docs: update documentation
+style: formatting, missing semi colons, etc
+refactor: code restructuring
+test: add missing tests
+chore: maintain dependencies
+```
+
+## Security Measures
+- JWT-based authentication
+- Password hashing using bcrypt
+- XSS protection
+- CORS configuration
+- Rate limiting
+- Input validation
+- Secure headers
+- Environment variable protection
+
 ## License
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
-Project Link: [https://github.com/Vineet1576/Daily-News-PixelPost](https://github.com/Vineet1576/Daily-News-PixelPost)
+- Project Link: [Daily-News-FlashFeed](https://github.com/Vineet1576/Daily-News-PixelPost)
+- Developer: [Vineet1576](https://github.com/Vineet1576)
 
 ## Acknowledgments
-- [React.js](https://reactjs.org/)
-- [Node.js](https://nodejs.org/)
-- [MongoDB](https://www.mongodb.com/)
-- [TailwindCSS](https://tailwindcss.com/)
-- [GNews API](https://gnews.io/)
+- [React.js](https://reactjs.org/) - Frontend framework
+- [Node.js](https://nodejs.org/) - Backend runtime
+- [MongoDB](https://www.mongodb.com/) - Database
+- [TailwindCSS](https://tailwindcss.com/) - Styling
+- [GNews API](https://gnews.io/) - News data provider
+- [Express.js](https://expressjs.com/) - Backend framework
+- [JWT](https://jwt.io/) - Authentication
+- [Vite](https://vitejs.dev/) - Build tool

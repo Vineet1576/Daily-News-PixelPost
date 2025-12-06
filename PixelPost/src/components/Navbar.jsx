@@ -28,7 +28,7 @@ function Navbar({ publishedDate, setPublishedDate, search, setSearch, category, 
                     className="cursor-pointer text-3xl font-extrabold tracking-tight text-blue-400 drop-shadow-md transition-all duration-300 hover:scale-105"
                     onClick={() => handleNav(() => navigate('/'))}
                 >
-                    PixelPost.
+                    FlashFeed.
                 </div>
 
                 {/* Desktop Links */}

@@ -8,8 +8,6 @@ import Card from './components/ui/Card';
 import Label from './components/ui/Label';
 import ErrorText from './components/ui/ErrorText';
 
-
-
 function SignUp() {
     const navigate = useNavigate();
     const [name, setName] = useState("");

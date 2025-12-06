@@ -5,7 +5,7 @@ export const getSecureImageUrl = (url) => {
     // List of allowed direct image domains
     const allowedDomains = [
         'localhost',
-        'pixelpost.com',
+        'flashfeed.com',
         'images.unsplash.com'
     ];
 

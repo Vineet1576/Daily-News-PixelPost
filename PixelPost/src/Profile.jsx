@@ -22,7 +22,8 @@ export default function Profile() {
         error: bookmarksError,
         fetchBookmarks,
         removeBookmark,
-        addBookmark
+        addBookmark,
+        checkBookmark
     } = useBookmarks();
     const [bookmarkError, setBookmarkError] = useState('');
     // Removed search and publishedDate state
@@ -151,18 +152,49 @@ export default function Profile() {
     const handleBookmark = async (item) => {
         try {
             setBookmarkError('');
-            if (!item._id) {
-                throw new Error('Invalid bookmark data');
+
+            // If the item is already a bookmark from the DB it should include _id
+            if (item && item._id) {
+                await removeBookmark(item._id);
+                await fetchBookmarks();
+                return;
             }
-            
-            // Remove bookmark using MongoDB
-            await removeBookmark(item._id);
-            
-            // Refresh bookmarks after removal
-            await fetchBookmarks();
+
+            // Otherwise, try to toggle bookmark by URL (news article)
+            if (item && item.url) {
+                // Check backend if this URL is bookmarked
+                const status = await checkBookmark(item.url);
+                if (status?.isBookmarked) {
+                    // remove using returned bookmarkId
+                    const idToRemove = status.bookmarkId;
+                    if (idToRemove) {
+                        await removeBookmark(idToRemove);
+                        await fetchBookmarks();
+                        return;
+                    }
+                    // If no id available, fail gracefully
+                    throw new Error('Unable to determine bookmark id for removal');
+                } else {
+                    // Build bookmark payload expected by backend
+                    const bookmarkData = {
+                        title: item.title || item.name || 'Untitled',
+                        description: item.description || item.content || '',
+                        url: item.url,
+                        image: item.image || item.urlToImage || '',
+                        source: item.source || (item.source && item.source.name) || {},
+                        publishedAt: item.publishedAt || item.published_at || new Date().toISOString()
+                    };
+                    await addBookmark(bookmarkData);
+                    await fetchBookmarks();
+                    return;
+                }
+            }
+
+            // If no usable identifier found
+            throw new Error('Invalid bookmark data');
         } catch (error) {
-            console.error('Error removing bookmark:', error);
-            setBookmarkError(error.response?.data?.message || 'Failed to remove bookmark');
+            console.error('Error handling bookmark:', error);
+            setBookmarkError(error.response?.data?.message || error.message || 'Failed to process bookmark');
         }
     };
 
